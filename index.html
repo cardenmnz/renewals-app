@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#6366f1">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<title>Renewals — Subscription Tracker</title>
+<style>
+  :root{--bg:#101322; --card:#1a1f35; --card2:#242b47; --text:#e8ebf7; --muted:#8189a8;
+        --accent:#6366f1; --accent2:#818cf8; --warn:#f59e0b; --red:#ef4444; --green:#22c55e; --radius:14px;}
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  body{background:var(--bg); color:var(--text); font-family:-apple-system,"Segoe UI",Roboto,sans-serif;
+       max-width:520px; margin:0 auto; padding:16px 16px 90px; min-height:100vh;}
+  header{display:flex; justify-content:space-between; align-items:center; padding:8px 0 16px;}
+  h1{font-size:1.3rem;}
+  select{background:var(--card); color:var(--text); border:1px solid var(--card2); border-radius:8px; padding:6px 8px; font-size:.85rem;}
+  .totals{background:linear-gradient(135deg,#4f46e5,#7c3aed); border-radius:var(--radius); padding:18px; margin-bottom:16px;}
+  .totals .big{font-size:2rem; font-weight:700;}
+  .totals .sub2{font-size:.85rem; opacity:.85; margin-top:2px;}
+  .sub{background:var(--card); border-radius:var(--radius); padding:14px 16px; margin-bottom:10px;
+       display:flex; align-items:center; gap:12px; cursor:pointer;}
+  .logo{width:42px; height:42px; border-radius:10px; background:var(--card2); display:flex; align-items:center;
+        justify-content:center; font-weight:700; font-size:1.1rem; color:var(--accent2); flex-shrink:0;}
+  .sub-info{flex:1; min-width:0;}
+  .sub-name{font-weight:600;}
+  .sub-meta{color:var(--muted); font-size:.78rem; margin-top:2px;}
+  .sub-right{text-align:right;}
+  .sub-price{font-weight:700;}
+  .sub-due{font-size:.72rem; margin-top:2px; color:var(--muted);}
+  .due-soon{color:var(--warn); font-weight:600;}
+  .due-today{color:var(--red); font-weight:700;}
+  .empty{text-align:center; color:var(--muted); padding:60px 20px; line-height:1.6;}
+  .empty .big{font-size:2.5rem; margin-bottom:12px;}
+  .fab{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--accent);
+       color:#fff; border:none; border-radius:28px; padding:14px 28px; font-size:1rem; font-weight:600;
+       cursor:pointer; box-shadow:0 4px 16px rgba(99,102,241,.45);}
+  dialog{background:var(--card); color:var(--text); border:none; border-radius:var(--radius);
+         padding:22px; width:min(92vw,400px); margin:auto;}
+  dialog::backdrop{background:rgba(0,0,0,.6);}
+  dialog h2{font-size:1.05rem; margin-bottom:14px;}
+  label{display:block; font-size:.75rem; color:var(--muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:.04em;}
+  dialog input, dialog select{width:100%; background:var(--bg); border:1px solid var(--card2); border-radius:8px;
+         color:var(--text); padding:11px; font-size:1rem; margin-bottom:12px;}
+  dialog input:focus, dialog select:focus{outline:none; border-color:var(--accent);}
+  .two{display:flex; gap:10px;}
+  .two > div{flex:1;}
+  .dlg-row{display:flex; gap:10px; justify-content:flex-end; margin-top:4px;}
+  .btn{border:none; border-radius:8px; padding:10px 18px; font-size:.9rem; cursor:pointer;}
+  .btn-primary{background:var(--accent); color:#fff; font-weight:600;}
+  .btn-ghost{background:var(--card2); color:var(--text);}
+  .btn-danger{background:var(--red); color:#fff; margin-right:auto;}
+  .section-label{color:var(--muted); font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; margin:18px 0 8px;}
+  .export-link{display:block; text-align:center; color:var(--muted); font-size:.75rem; margin-top:20px;
+         background:none; border:none; width:100%; cursor:pointer; text-decoration:underline;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Renewals</h1>
+  <select id="currency" onchange="setCurrency()">
+    <option value="£">£ GBP</option><option value="$">$ USD</option><option value="€">€ EUR</option>
+  </select>
+</header>
+
+<div class="totals">
+  <div class="big" id="totalMonthly">£0.00</div>
+  <div class="sub2">per month · <span id="totalYearly">£0.00</span> per year · <span id="subCount">0</span> subscriptions</div>
+</div>
+
+<div id="list"></div>
+
+<button class="fab" onclick="openAdd()">＋ Add subscription</button>
+
+<dialog id="dlg">
+  <h2 id="dlgTitle">Add subscription</h2>
+  <label>Name</label>
+  <input id="fName" placeholder="e.g. Netflix, Spotify, Gym" maxlength="40">
+  <div class="two">
+    <div><label>Price</label><input id="fPrice" type="number" step="0.01" min="0" placeholder="9.99"></div>
+    <div><label>Billing cycle</label>
+      <select id="fCycle">
+        <option value="monthly">Monthly</option>
+        <option value="yearly">Yearly</option>
+        <option value="weekly">Weekly</option>
+        <option value="quarterly">Quarterly</option>
+      </select>
+    </div>
+  </div>
+  <label>Next renewal date</label>
+  <input id="fDate" type="date">
+  <label>Category (optional)</label>
+  <select id="fCat">
+    <option value="">None</option><option>Streaming</option><option>Music</option><option>Software</option>
+    <option>Gaming</option><option>Fitness</option><option>News</option><option>Cloud storage</option><option>Other</option>
+  </select>
+  <div class="dlg-row">
+    <button class="btn btn-danger" id="dlgDelete" style="display:none;" onclick="deleteSub()">Delete</button>
+    <button class="btn btn-ghost" onclick="dlg.close()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveSub()">Save</button>
+  </div>
+</dialog>
+
+<button class="export-link" onclick="exportData()">Export my data</button>
+
+<script>
+"use strict";
+const KEY = "renewals_data_v1";
+const CUR_KEY = "renewals_currency";
+let subs = [];      // {id, name, price, cycle, next, cat}
+let editingId = null;
+const dlg = document.getElementById("dlg");
+let CUR = localStorage.getItem(CUR_KEY) || "£";
+document.getElementById("currency").value = CUR;
+
+const CYCLE_MONTHLY = { monthly:1, yearly:1/12, weekly:52/12, quarterly:1/3 };
+const CYCLE_DAYS = { monthly:null, yearly:null, weekly:7, quarterly:null }; // handled by month math below
+
+function loadData(){ try{ subs = JSON.parse(localStorage.getItem(KEY)) || []; }catch{ subs = []; } }
+function saveData(){ localStorage.setItem(KEY, JSON.stringify(subs)); }
+function setCurrency(){ CUR = document.getElementById("currency").value; localStorage.setItem(CUR_KEY, CUR); render(); }
+
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = n => CUR + (isFinite(n) ? n.toFixed(2) : "0.00");
+
+function todayMidnight(){ const d = new Date(); d.setHours(0,0,0,0); return d; }
+
+// Roll a renewal date forward until it is today or later
+function rollForward(sub){
+  if (!sub.next) return;
+  let d = new Date(sub.next + "T00:00:00");
+  const t = todayMidnight();
+  let guard = 0;
+  while (d < t && guard++ < 500){
+    if (sub.cycle === "weekly") d.setDate(d.getDate()+7);
+    else if (sub.cycle === "monthly") d.setMonth(d.getMonth()+1);
+    else if (sub.cycle === "quarterly") d.setMonth(d.getMonth()+3);
+    else d.setFullYear(d.getFullYear()+1);
+  }
+  const iso = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  if (iso !== sub.next){ sub.next = iso; return true; }
+  return false;
+}
+
+function daysUntil(iso){
+  if (!iso) return null;
+  return Math.round((new Date(iso+"T00:00:00") - todayMidnight()) / 86400000);
+}
+
+function render(){
+  let changed = false;
+  subs.forEach(s => { if (rollForward(s)) changed = true; });
+  if (changed) saveData();
+
+  subs.sort((a,b) => (a.next||"9999").localeCompare(b.next||"9999"));
+
+  const monthly = subs.reduce((a,s)=> a + s.price * (CYCLE_MONTHLY[s.cycle]||1), 0);
+  document.getElementById("totalMonthly").textContent = money(monthly);
+  document.getElementById("totalYearly").textContent = money(monthly*12);
+  document.getElementById("subCount").textContent = subs.length;
+
+  const list = document.getElementById("list");
+  if (!subs.length){
+    list.innerHTML = `<div class="empty"><div class="big">💳</div>Nothing tracked yet.<br>Add your first subscription and see what you really spend.</div>`;
+    return;
+  }
+  list.innerHTML = subs.map(s => {
+    const du = daysUntil(s.next);
+    let dueTxt = "", dueCls = "";
+    if (du === null) dueTxt = "";
+    else if (du === 0){ dueTxt = "Renews today"; dueCls = "due-today"; }
+    else if (du === 1){ dueTxt = "Renews tomorrow"; dueCls = "due-soon"; }
+    else if (du <= 7){ dueTxt = `Renews in ${du} days`; dueCls = "due-soon"; }
+    else dueTxt = "Renews " + new Date(s.next+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+    const cycleTxt = {monthly:"monthly", yearly:"yearly", weekly:"weekly", quarterly:"quarterly"}[s.cycle];
+    return `<div class="sub" onclick="openEdit('${s.id}')">
+      <div class="logo">${esc((s.name||"?")[0].toUpperCase())}</div>
+      <div class="sub-info">
+        <div class="sub-name">${esc(s.name)}</div>
+        <div class="sub-meta">${esc(s.cat||"")}${s.cat?" · ":""}${cycleTxt}</div>
+      </div>
+      <div class="sub-right">
+        <div class="sub-price">${money(s.price)}</div>
+        <div class="sub-due ${dueCls}">${dueTxt}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function openAdd(){
+  editingId = null;
+  document.getElementById("dlgTitle").textContent = "Add subscription";
+  ["fName","fPrice","fDate"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("fCycle").value = "monthly";
+  document.getElementById("fCat").value = "";
+  document.getElementById("dlgDelete").style.display = "none";
+  dlg.showModal();
+}
+function openEdit(id){
+  const s = subs.find(x=>x.id===id); if (!s) return;
+  editingId = id;
+  document.getElementById("dlgTitle").textContent = "Edit subscription";
+  document.getElementById("fName").value = s.name;
+  document.getElementById("fPrice").value = s.price;
+  document.getElementById("fCycle").value = s.cycle;
+  document.getElementById("fDate").value = s.next || "";
+  document.getElementById("fCat").value = s.cat || "";
+  document.getElementById("dlgDelete").style.display = "block";
+  dlg.showModal();
+}
+function saveSub(){
+  const name = document.getElementById("fName").value.trim();
+  const price = parseFloat(document.getElementById("fPrice").value);
+  const cycle = document.getElementById("fCycle").value;
+  const next = document.getElementById("fDate").value;
+  const cat = document.getElementById("fCat").value;
+  if (!name || !isFinite(price) || price < 0) return;
+  if (editingId){
+    const s = subs.find(x=>x.id===editingId);
+    if (s) Object.assign(s, {name, price, cycle, next, cat});
+  } else {
+    subs.push({ id:"s"+Date.now(), name, price, cycle, next, cat });
+  }
+  saveData(); render(); dlg.close();
+}
+function deleteSub(){
+  if (!editingId) return;
+  if (!confirm("Delete this subscription?")) return;
+  subs = subs.filter(s=>s.id!==editingId);
+  saveData(); render(); dlg.close();
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(subs,null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "renewals-export.json";
+  a.click();
+}
+
+loadData(); render();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+</script>
+</body>
+</html>
