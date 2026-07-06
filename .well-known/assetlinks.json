@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.cardenmnz.renewals",
+        "sha256_cert_fingerprints": ["12:58:82:D6:D2:F4:24:27:61:27:CA:A0:22:8F:29:D5:57:79:67:2D:24:55:D4:B2:0E:71:AA:CB:78:91:EB:BA"]
+      }
+    }]
